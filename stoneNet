@@ -1,0 +1,102 @@
+local id = os.getComputerID()
+
+os.loadAPI('logging')
+os.loadAPI('utils')
+
+function createNet(side, channel)
+	local net = {}
+	local daemons = {}
+	local runningDaemons = {}
+
+	local addr = tostring(channel) .. ':' .. tostring(id)
+
+	function net.addDaemon(name, fn)
+		if type(fn) ~= 'function' then
+			return false
+		end
+
+		daemons[name] = fn
+
+		return true
+	end
+
+	function net.checkEvent(ev)
+		if ev[1] == 'modem_message' and ev[2] == side and ev[3] == channel then
+			return true
+		end
+
+		return false
+	end
+
+	function net.run()
+		return true
+	end
+
+	function net.stop()
+		for name in pairs(daemons) do
+			if type(runningDaemons[name]) == 'thread' and not net.stopDaemon(name) then return false end
+		end
+
+		return true
+	end
+
+	function net.startDaemon(name)
+		local fn = daemons[name]
+
+		if type(fn) ~= 'function' then return false end
+
+		local daemon = coroutine.create(fn)
+		runningDaemons[name] = daemon
+		utils.erroredResume(daemon, addr)
+
+		return true
+	end
+
+	function net.stopDaemon(name)
+		local daemon = runningDaemons[name]
+
+		if type(daemon) ~= 'thread' then return true end
+
+		utils.erroredResume(daemon, { 'lci', {
+			command = 'daemon:stop'
+		} })
+
+		if coroutine.status(daemon) == 'dead' then
+			runningDaemons[name] = nil
+		else
+			logging.warn(name .. ' didn\'t stop when told to')
+
+			return false
+		end
+
+		return true
+	end
+
+	function net.handle(ev)
+		if not net.checkEvent(ev) then return false end
+
+		local frame = parseEvent(ev)
+
+		for name, daemon in pairs(runningDaemons) do
+			utils.erroredResume(daemon, frame)
+		end
+
+		return true
+	end
+
+	return net
+end
+
+function parseEvent(ev)
+	local frame = {}
+	local data = textutils.unserialize(ev[5]) -- This should change
+
+	frame.to = data.to
+	frame.from = data.from
+	frame.data = data.data
+	frame.type = data.type
+	frame.channel = ev[2]
+	frame.event = ev
+
+	return frame
+end

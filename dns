@@ -1,0 +1,9 @@
+function createServer(net)
+	local server = {}
+
+	function server.run()
+		
+	end
+
+	return server
+end

@@ -1,0 +1,50 @@
+local color = { colors.black, colors.white }
+local colors = {
+	{ colors.black, colors.white },
+	{ colors.black, colors.white },
+	{ colors.white, colors.black },
+	{ colors.white, colors.black },
+	{ colors.white, colors.black }
+}
+
+logLevel = 1
+
+if term.isColor() then
+	colors[3] = { colors.yellow, colors.black }
+	colors[4] = { colors.red, colors.yellow }
+	colors[5] = { colors.red, colors.black }
+end
+
+function output(level, ...)
+	term.setBackgroundColor(colors[level][1])
+	term.setTextColor(colors[level][2])
+
+	for _, v in pairs({...}) do
+		write(tostring(v))
+	end
+
+	term.setBackgroundColor(color[1])
+	term.setTextColor(color[2])
+
+	write('\n')
+end
+
+function log(...)
+	output(1, ...)
+end
+
+function debug(...)
+	output(2, ...)
+end
+
+function warn(...)
+	output(3, ...)
+end
+
+function error(...)
+	output(4, ...)
+end
+
+function fatal(...)
+	output(5, ...)
+end
