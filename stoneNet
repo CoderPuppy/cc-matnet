@@ -8,8 +8,6 @@ function createNet(side, channel)
 	local daemons = {}
 	local runningDaemons = {}
 
-	local addr = tostring(channel) .. ':' .. tostring(id)
-
 	function net.addDaemon(name, fn)
 		if type(fn) ~= 'function' then
 			return false
@@ -47,7 +45,7 @@ function createNet(side, channel)
 
 		local daemon = coroutine.create(fn)
 		runningDaemons[name] = daemon
-		utils.erroredResume(daemon, addr)
+		utils.erroredResume(daemon, id)
 
 		return true
 	end
