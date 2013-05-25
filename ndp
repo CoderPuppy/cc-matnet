@@ -4,7 +4,7 @@ function createServer(net, cache)
 	local server = {}
 
 	function server.run()
-		return net.startDaemon('arpd')
+		return net.startDaemon('ndpd')
 	end
 
 	function server.daemon()
@@ -23,7 +23,7 @@ function createServer(net, cache)
 		end
 	end
 
-	net.addDaemon('arpd', server.daemon)
+	net.addDaemon('ndpd', server.daemon)
 
 	return server
 end
