@@ -129,7 +129,7 @@ function parseMAT(mat)
 	local m, subnetStart
 
 	local mata = {
-		netBits = 48
+		netBits = nil
 	}
 
 	-- Match the subnet
@@ -232,7 +232,11 @@ function matToString(mata)
 	end
 
 	-- Add the net bits to the end
-	return res .. '/' .. tostring(mata.netBits)
+	if type(mata.netBits) == 'number' then
+		res = res .. '/' .. tostring(mata.netBits)
+	end
+
+	return res
 end
 
 -- MAT Address Syntax
