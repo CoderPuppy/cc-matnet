@@ -3,7 +3,7 @@ local id = os.getComputerID()
 os.loadAPI('logging')
 os.loadAPI('utils')
 
-function createNet(side, channel)
+function create(side, channel)
 	local net = {}
 	local daemons = {}
 	local runningDaemons = {}

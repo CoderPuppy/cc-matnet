@@ -8,7 +8,7 @@ os.loadAPI('arp')
 local arpCache = {}
 
 -- Create Local Network
-local lan = goldNet.createNet(peripheral.wrap('right'), 0)
+local lan = goldNet.create(peripheral.wrap('right'), 0)
 local dhcpd = dhcp.createServer(lan)
 -- local dnsd = dns.createServer(lan)
 

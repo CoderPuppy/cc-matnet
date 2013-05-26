@@ -2,9 +2,9 @@ os.loadAPI('stoneNet')
 os.loadAPI('utils')
 os.loadAPI('logging')
 
-function createNet(modem, channel)
+function create(routes, modem, channel)
 	local net = {}
-	local stone = stoneNet.createNet(modem, channel)
+	local stone = stoneNet.create(modem, channel)
 	local daemons = {}
 	local runningDaemons = {}
 	local opts = {}
