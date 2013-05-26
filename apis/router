@@ -1,0 +1,6 @@
+function create()
+	local routes = {}
+	local mappings = {}
+
+	return routes
+end
