@@ -3,7 +3,15 @@ id = os.getComputerID()
 os.loadAPI('logging')
 os.loadAPI('utils')
 
-function create(side, channel)
+function create(opts)
+	if type(opts) ~= 'table' then error('You must specify modem, side and tables') end
+
+	if type(opts.modem) ~= 'table' then error('You must pass a valid modem, got: ' .. type(opts.modem)) end
+	if type(opts.channel) ~= 'number' then error('Channel must be a number, got: ' .. type(opts.channel)) end
+	if opts.channel <= 0 then error('Channel must be greater than 0, got: ' .. tostring(opts.channel)) end
+	if opts.channel >= 65535 then error('Channel must be less than 65535, got: ' .. tostring(opts.channel)) end
+	if type(opts.tables) ~= 'table' then error('You must pass a valid matable instance, got: ' .. type(opts.tables)) end
+
 	local net = {}
 	local daemons = {}
 	local runningDaemons = {}
@@ -57,7 +65,7 @@ function create(side, channel)
 		-- Handle daemons that aren't started
 		if type(daemon) ~= 'thread' then return true end
 
-		utils.erroredResume(daemon, { 'lci', {
+		utils.erroredResume(daemon, { 'lcp', {
 			command = 'daemon:stop'
 		} })
 

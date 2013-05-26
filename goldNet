@@ -2,12 +2,13 @@ os.loadAPI('stoneNet')
 os.loadAPI('utils')
 os.loadAPI('logging')
 
-function create(routes, modem, channel)
+function create(opts)
+	if type(opts) ~= 'table' then error('You must specify modem, side, tables and routes') end
+
 	local net = {}
-	local stone = stoneNet.create(modem, channel)
+	local stone = stoneNet.create(opts)
 	local daemons = {}
 	local runningDaemons = {}
-	local opts = {}
 	local mat = '::'
 
 	function net.addDaemon(name, fn)
@@ -18,14 +19,6 @@ function create(routes, modem, channel)
 		daemons[name] = fn
 
 		return true
-	end
-
-	function net.set(k, v)
-		opts[k] = v
-	end
-
-	function net.get(k)
-		return opts[k]
 	end
 
 	function net.run()
@@ -70,7 +63,7 @@ function create(routes, modem, channel)
 
 		logging.log('Stopping Daemon: ' .. name)
 
-		utils.erroredResume(daemon, { 'lci', {
+		utils.erroredResume(daemon, { 'lcp', {
 			command = 'daemon:stop'
 		} })
 
@@ -91,13 +84,26 @@ function create(routes, modem, channel)
 
 	function net.checkEvent(ev) return stone.checkEvent(ev) end
 
+	function net.genFrame(packet)
+		if packet.frame then return packet.frame end
+
+		local frame = {
+			to = routes.get(packet.to),
+			from = stoneNet.id
+		}
+
+		frame.data = packet
+
+		return frame
+	end
+
 	net.stone = stone
 
 	stone.addDaemon('goldenDaemons', function(addr)
 		while true do
 			local _, frame = coroutine.yield()
 
-			if _ == 'lci' then
+			if _ == 'lcp' then
 				if frame.command == 'daemon:stop' then
 					return
 				end
@@ -112,6 +118,19 @@ function create(routes, modem, channel)
 	end)
 
 	return net
+end
+
+function createPacket(opts)
+	opts = opts or {}
+
+	local packet = {
+		to = opts.to or '::',
+		from = opts.from or '::',
+		data = opts.data,
+		type = opts.type
+	}
+	
+	return packet
 end
 
 function parseFrame(frame)

@@ -1,0 +1,5 @@
+function create(routes)
+	local net = {}
+
+	return net
+end
