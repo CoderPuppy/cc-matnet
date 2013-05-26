@@ -41,7 +41,8 @@ function createNet(side, channel)
 	function net.startDaemon(name)
 		local fn = daemons[name]
 
-		if type(fn) ~= 'function' then return false end
+		-- Not really necessary
+		-- if type(fn) ~= 'function' then return false end
 
 		local daemon = coroutine.create(fn)
 		runningDaemons[name] = daemon
@@ -53,6 +54,7 @@ function createNet(side, channel)
 	function net.stopDaemon(name)
 		local daemon = runningDaemons[name]
 
+		-- Handle daemons that aren't started
 		if type(daemon) ~= 'thread' then return true end
 
 		utils.erroredResume(daemon, { 'lci', {

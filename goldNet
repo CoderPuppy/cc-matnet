@@ -12,7 +12,7 @@ function createNet(modem, channel)
 
 	function net.addDaemon(name, fn)
 		if type(fn) ~= 'function' then
-			return false
+			error('Must supply a function when registering a daemon')
 		end
 
 		daemons[name] = fn
@@ -49,7 +49,8 @@ function createNet(modem, channel)
 	function net.startDaemon(name)
 		local fn = daemons[name]
 
-		if type(fn) ~= 'function' then return false end
+		-- Not really necesary
+		-- if type(fn) ~= 'function' then return false end
 
 		logging.log('Starting Daemon: ' .. name)
 
@@ -64,7 +65,8 @@ function createNet(modem, channel)
 	function net.stopDaemon(name)
 		local daemon = runningDaemons[name]
 
-		if type(daemon) ~= 'thread' then return false end
+		-- Handle daemons that aren't started
+		if type(daemon) ~= 'thread' then return true end
 
 		logging.log('Stopping Daemon: ' .. name)
 
@@ -153,8 +155,7 @@ function parseMAT(mat)
 				expanderFound = true
 				expander = i
 			elseif outofRow then
-				print('More than one expander in MAT address')
-				return false
+				error('More than one expander in MAT address')
 			else
 				remove = remove + 1
 			end
