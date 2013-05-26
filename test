@@ -1,0 +1,13 @@
+os.loadAPI('goldNet')
+os.loadAPI('matable')
+os.loadAPI('loopback')
+os.loadAPI('router')
+
+local tables = matable.create()
+local net = goldNet.create({
+	modem = peripheral.wrap('right'),
+	channel = 1,
+	tables = tables,
+	routes = routes
+})
+local lo = loopback.create(routes)
