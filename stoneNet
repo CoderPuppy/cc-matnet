@@ -1,4 +1,4 @@
-local id = os.getComputerID()
+id = os.getComputerID()
 
 os.loadAPI('logging')
 os.loadAPI('utils')
