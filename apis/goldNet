@@ -3,7 +3,7 @@ os.loadAPI('apis/utils')
 os.loadAPI('apis/logging')
 
 function create(opts)
-	if type(opts) ~= 'table' then error('You must specify modem, side, tables and routes') end
+	if type(opts) ~= 'table' then error('You must specify modem, side, matables and routes') end
 
 	local net = {}
 	local stone = stoneNet.create(opts)
