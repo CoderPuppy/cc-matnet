@@ -1,7 +1,7 @@
 id = os.getComputerID()
 
-os.loadAPI('logging')
-os.loadAPI('utils')
+os.loadAPI('apis/logging')
+os.loadAPI('apis/utils')
 
 function create(opts)
 	if type(opts) ~= 'table' then error('You must specify modem, side and tables') end

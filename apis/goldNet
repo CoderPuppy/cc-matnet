@@ -1,6 +1,6 @@
-os.loadAPI('stoneNet')
-os.loadAPI('utils')
-os.loadAPI('logging')
+os.loadAPI('apis/stoneNet')
+os.loadAPI('apis/utils')
+os.loadAPI('apis/logging')
 
 function create(opts)
 	if type(opts) ~= 'table' then error('You must specify modem, side, tables and routes') end
