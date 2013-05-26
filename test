@@ -13,3 +13,7 @@ local net = goldNet.create({
 	matables = matables
 })
 local lo = loopback.create(routes)
+local nd = ndp.createClient({
+	net = net,
+	routes = routes
+})
