@@ -5,6 +5,7 @@ os.loadAPI('apis/router')
 os.loadAPI('apis/ndp')
 
 local matables = matable.create()
+local routes = router.create()
 local net = goldNet.create({
 	modem = peripheral.wrap('right'),
 	channel = 1,
