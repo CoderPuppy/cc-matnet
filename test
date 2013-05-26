@@ -1,7 +1,8 @@
-os.loadAPI('goldNet')
-os.loadAPI('matable')
-os.loadAPI('loopback')
-os.loadAPI('router')
+os.loadAPI('apis/goldNet')
+os.loadAPI('apis/matable')
+os.loadAPI('apis/loopback')
+os.loadAPI('apis/router')
+os.loadAPI('apis/ndp')
 
 local tables = matable.create()
 local net = goldNet.create({
