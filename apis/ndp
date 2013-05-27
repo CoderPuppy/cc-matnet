@@ -35,7 +35,7 @@ function createClient(opts)
 	if type(opts) ~= 'table' then error('You must specify net and routes') end
 
 	if type(opts.net) ~= 'table' then error('You must pass a valid network, got: ' .. type(opts.net)) end
-	if type(opts.routes) ~= 'table' then error('You must pass a valid router, got: ' .. type(opts.routes)) end
+	if type(opts.routes) ~= 'table' then error('You must pass a valid routes table, got: ' .. type(opts.routes)) end
 	
 	local client = {}
 
