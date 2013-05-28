@@ -1,0 +1,1 @@
+robocopy %appdata%\.ccemu\saves\computer\1 %appdata%\.ccemu\saves\computer\2 * /MIR /MON:1
