@@ -1,3 +1,26 @@
+function logn(n, x)
+	return math.log(x) / math.log(n)
+end
+
+function reverse(t)
+	local nt = {} -- new table
+	local size = #t + 1
+	for k,v in ipairs(t) do
+		nt[size - k] = v
+	end
+	return nt
+end
+
+function tobits(num)
+	local t={}
+	while num>0 do
+		rest=num%2
+		t[#t+1]=rest
+		num=(num-rest)/2
+	end
+	return reverse(t)
+end
+
 function table_slice(values,i1,i2)
 	local res = {}
 	local n = #values
