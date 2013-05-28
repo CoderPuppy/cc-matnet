@@ -1,22 +1,32 @@
 os.loadAPI('apis/goldNet')
 os.loadAPI('apis/matable')
 os.loadAPI('apis/loopback')
-os.loadAPI('apis/router')
 os.loadAPI('apis/ndp')
 
 local matables = matable.create()
-local routes = router.create()
+local routes = {}
 local net = goldNet.create({
-	modem = peripheral.wrap('right'),
-	channel = 1,
 	routes = routes,
 	matables = matables
 })
-local lo = loopback.create(routes)
+-- local weth = goldNet.createInterface({
+-- 	inter = stoneNet.createInterface({
+-- 		modem = peripheral.wrap('right'),
+-- 		channel = 1,
+-- 		matables = matables
+-- 	}),
+-- 	routes = routes
+-- })
+local lo = loopback.createInterface({ routes = routes })
 local nd = ndp.createClient({
 	net = net,
 	routes = routes
-})net.addDaemon('hellod', function(net)
+})
+
+-- net.open(weth)
+net.open(lo)
+
+net.addDaemon('hellod', function(net)
 	while true do
 		local _, packet = coroutine.yield()
 
