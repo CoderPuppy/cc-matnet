@@ -16,4 +16,25 @@ local lo = loopback.create(routes)
 local nd = ndp.createClient({
 	net = net,
 	routes = routes
-})
+})net.addDaemon('hellod', function(net)
+	while true do
+		local _, packet = coroutine.yield()
+
+		if _ == 'lcp' then
+			if packet.command == 'daemon:stop' then
+				return
+			end
+		elseif _ == 'network' and packet.type == 'hello' then
+			print('Hello, ', packet.data, '!!!')
+		end
+	end
+end)
+
+net.startDaemon('hellod')
+
+net.send(goldNet.createPacket({
+	to = '127::',
+	from = '127::',
+	data = 'CoderPuppy',
+	type = 'hello'
+}))
