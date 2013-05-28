@@ -16,6 +16,8 @@ if term.isColor() then
 end
 
 function output(level, ...)
+	if logLevel < level then return end
+
 	term.setBackgroundColor(colors[level][1])
 	term.setTextColor(colors[level][2])
 
