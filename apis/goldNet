@@ -4,13 +4,34 @@ os.loadAPI('apis/logging')
 os.loadAPI('apis/mat')
 
 function create(opts)
-	if type(opts) ~= 'table' then error('You must specify modem, side, matables and routes') end
+	if type(opts) ~= 'table' then error('You must specify mataables and routes') end
+
+	if type(opts.matables) ~= 'table' then error('You must pass a valid mataable instance, got: ' .. type(opts.mataables)) end
+	if type(opts.routes) ~= 'table' then error('You must pass a valid router, got: ' .. type(opts.routes)) end
 
 	local net = {}
-	local stone = stoneNet.create(opts)
 	local daemons = {}
 	local runningDaemons = {}
-	local mat = '::'
+	local interfaces = {}
+
+	local mataables = opts.mataables
+	local routes = opts.routes
+
+	function networkDaemons(inter)
+		while true do
+			local _, packet = coroutine.yield()
+
+			if _ == 'lcp' then
+				if packet.command == 'daemon:stop' then
+					return
+				end
+			elseif _ == 'network' then
+				for _, daemon in pairs(runningDaemons) do
+					utils.erroredResume(daemon, 'network', packet)
+				end
+			end
+		end
+	end
 
 	function net.addDaemon(name, fn)
 		if type(fn) ~= 'function' then
@@ -23,9 +44,9 @@ function create(opts)
 	end
 
 	function net.run()
-		stone.run()
+		-- stone.run()
 
-		stone.startDaemon('goldenDaemons')
+		-- stone.startDaemon('goldenDaemons')
 	end
 
 	function net.stop()
@@ -33,9 +54,26 @@ function create(opts)
 			if type(runningDaemons[name]) == 'thread' and not net.stopDaemon(name) then return false end
 		end
 
-		if not stone.stopDaemon('goldenDaemons') then return false end
+		for name, inter in pairs(interfaces) do
+			inter.stop()
+		end
 
-		if not stone.stop() then return false end
+		return true
+	end
+
+	function net.open(inter)
+		if not inter.addDaemon('networkDaemons', networkDaemons) then return false end
+		if not inter.startDaemon('networkDaemons') then return false end
+
+		interfaces[inter.name] = inter
+
+		return true
+	end
+
+	function net.close(inter)
+		if not inter.stopDaemon('networkDaemons') then return false end
+
+		interfaces[inter.name] = nil
 
 		return true
 	end
@@ -46,11 +84,11 @@ function create(opts)
 		-- Not really necesary
 		-- if type(fn) ~= 'function' then return false end
 
-		logging.log('Starting Daemon: ' .. name)
+		logging.debug('Starting Daemon: ' .. name)
 
 		local daemon = coroutine.create(fn)
 		runningDaemons[name] = daemon
-		utils.erroredResume(daemon, mat)
+		utils.erroredResume(daemon, net)
 
 
 		return true
@@ -62,7 +100,7 @@ function create(opts)
 		-- Handle daemons that aren't started
 		if type(daemon) ~= 'thread' then return true end
 
-		logging.log('Stopping Daemon: ' .. name)
+		logging.debug('Stopping Daemon: ' .. name)
 
 		utils.erroredResume(daemon, { 'lcp', {
 			command = 'daemon:stop'
@@ -85,6 +123,14 @@ function create(opts)
 
 	function net.checkEvent(ev) return stone.checkEvent(ev) end
 
+	function net.send(packet)
+		local to = mat.parse(packet.to)
+
+		for ma, inter in pairs(routes) do
+			if mat.match(to, ma) and inter.send(packet) then break end
+		end
+	end
+
 	function net.genFrame(packet)
 		if packet.frame then return packet.frame end
 
@@ -98,27 +144,85 @@ function create(opts)
 		return frame
 	end
 
-	net.stone = stone
+	-- net.stone = stone
 
-	stone.addDaemon('goldenDaemons', function(addr)
-		while true do
-			local _, frame = coroutine.yield()
+	-- stone.addDaemon('goldenDaemons', function(addr)
+	-- 	while true do
+	-- 		local _, frame = coroutine.yield()
 
-			if _ == 'lcp' then
-				if frame.command == 'daemon:stop' then
-					return
-				end
-			elseif _ == 'network' then
-				local packet = parseFrame(frame)
+	-- 		if _ == 'lcp' then
+	-- 			if frame.command == 'daemon:stop' then
+	-- 				return
+	-- 			end
+	-- 		elseif _ == 'network' then
+	-- 			local packet = parseFrame(frame)
 
-				for name, daemon in pairs(runningDaemons) do
-					utils.erroredResume(daemon, { 'network', packet })
-				end
-			end
-		end
-	end)
+	-- 			for name, daemon in pairs(runningDaemons) do
+	-- 				utils.erroredResume(daemon, { 'network', packet })
+	-- 			end
+	-- 		end
+	-- 	end
+	-- end)
 
 	return net
+end
+
+function createInterface(opts)
+	if type(opts) ~= 'table' then error('You must specify a low-level interface and a routes table') end
+
+	if type(opts.inter) ~= 'table' then error('You must pass a valid low-level interface, got: ' .. type(opts.inter)) end
+	if type(opts.routes) ~= 'table' then error('You must pass a valid routes table, got: ' .. type(opts.routes)) end
+
+	local inter = {}
+
+	local daemons = {}
+	local runningDaemons = {}
+
+	function inter.addDaemon(name, fn)
+		if type(fn) ~= 'function' then
+			return false
+		end
+
+		daemons[name] = fn
+
+		return true
+	end
+
+	function inter.startDaemon(name)
+		local fn = daemons[name]
+
+		-- Not really necessary
+		-- if type(fn) ~= 'function' then return false end
+
+		local daemon = coroutine.create(fn)
+		runningDaemons[name] = daemon
+		utils.erroredResume(daemon, inter)
+
+		return true
+	end
+
+	function inter.stopDaemon(name)
+		local daemon = runningDaemons[name]
+
+		-- Handle daemons that aren't started
+		if type(daemon) ~= 'thread' then return true end
+
+		utils.erroredResume(daemon, { 'lcp', {
+			command = 'daemon:stop'
+		} })
+
+		if coroutine.status(daemon) == 'dead' then
+			runningDaemons[name] = nil
+		else
+			logging.warn(name .. ' didn\'t stop when told to')
+
+			return false
+		end
+
+		return true
+	end
+
+	return inter
 end
 
 function createPacket(opts)
@@ -145,3 +249,4 @@ function parseFrame(frame)
 	packet.frame = frame
 
 	return packet
+end

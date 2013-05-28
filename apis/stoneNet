@@ -3,7 +3,7 @@ id = os.getComputerID()
 os.loadAPI('apis/logging')
 os.loadAPI('apis/utils')
 
-function create(opts)
+function createInterface(opts)
 	if type(opts) ~= 'table' then error('You must specify modem, side and matables') end
 
 	if type(opts.modem) ~= 'table' then error('You must pass a valid modem, got: ' .. type(opts.modem)) end
@@ -12,11 +12,14 @@ function create(opts)
 	if opts.channel >= 65535 then error('Channel must be less than 65535, got: ' .. tostring(opts.channel)) end
 	if type(opts.matables) ~= 'table' then error('You must pass a valid matable instance, got: ' .. type(opts.matables)) end
 
-	local net = {}
+	local inter = { id = id }
 	local daemons = {}
 	local runningDaemons = {}
 
-	function net.addDaemon(name, fn)
+	local modem = opts.modem
+	local channel = opts.channel
+
+	function inter.addDaemon(name, fn)
 		if type(fn) ~= 'function' then
 			return false
 		end
@@ -26,7 +29,7 @@ function create(opts)
 		return true
 	end
 
-	function net.checkEvent(ev)
+	function inter.checkEvent(ev)
 		if ev[1] == 'modem_message' and ev[2] == side and ev[3] == channel then
 			return true
 		end
@@ -34,36 +37,40 @@ function create(opts)
 		return false
 	end
 
-	function net.run()
+	function inter.run()
 		return true
 	end
 
-	function net.stop()
+	function inter.stop()
 		for name in pairs(daemons) do
-			if type(runningDaemons[name]) == 'thread' and not net.stopDaemon(name) then return false end
+			if type(runningDaemons[name]) == 'thread' and not inter.stopDaemon(name) then return false end
 		end
 
 		return true
 	end
 
-	function net.startDaemon(name)
+	function inter.startDaemon(name)
 		local fn = daemons[name]
 
 		-- Not really necessary
 		-- if type(fn) ~= 'function' then return false end
 
+		logging.debug('Starting Daemon: ' .. name)
+
 		local daemon = coroutine.create(fn)
 		runningDaemons[name] = daemon
-		utils.erroredResume(daemon, id)
+		utils.erroredResume(daemon, inter)
 
 		return true
 	end
 
-	function net.stopDaemon(name)
+	function inter.stopDaemon(name)
 		local daemon = runningDaemons[name]
 
 		-- Handle daemons that aren't started
 		if type(daemon) ~= 'thread' then return true end
+
+		logging.debug('Stopping Daemon: ' .. name)
 
 		utils.erroredResume(daemon, { 'lcp', {
 			command = 'daemon:stop'
@@ -80,8 +87,8 @@ function create(opts)
 		return true
 	end
 
-	function net.handle(ev)
-		if not net.checkEvent(ev) then return false end
+	function inter.handle(ev)
+		if not inter.checkEvent(ev) then return false end
 
 		local frame = parseEvent(ev)
 
@@ -92,7 +99,15 @@ function create(opts)
 		return true
 	end
 
-	return net
+	function inter.send(frame)
+		modem.transmit(channel, channel, genMsg(frame))
+	end
+
+	return inter
+end
+
+function genMsg(frame)
+	return textutils.serialize(frame)
 end
 
 function parseEvent(ev)
