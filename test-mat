@@ -1,0 +1,6 @@
+os.loadAPI('apis/mat')
+
+local loAddr = mat.parse('127::/8')
+local loNet = mat.createNetwork(loAddr)
+
+print(mat.match(mat.parse('127::1'), loNet))
