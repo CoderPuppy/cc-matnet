@@ -68,8 +68,10 @@ function createInterface(opts)
 
 	function inter.stop()
 		for name in pairs(daemons) do
-			if type(runningDaemons[name]) == 'thread' and not net.stopDaemon(name) then return false end
+			if type(runningDaemons[name]) == 'thread' and not inter.stopDaemon(name) then return false end
 		end
+
+		return true
 	end
 
 	function inter.send(packet)
@@ -77,6 +79,10 @@ function createInterface(opts)
 			coroutine.resume(daemon, 'network', packet)
 		end
 	end
+
+	function inter.checkEvent() return false end
+	function inter.handleEvent() return false end
+	function inter.run() return true end
 
 	return inter
 end

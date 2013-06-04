@@ -9,15 +9,15 @@ function create(opts)
 	if type(opts.matables) ~= 'table' then error('You must pass a valid mataable instance, got: ' .. type(opts.mataables)) end
 	if type(opts.routes) ~= 'table' then error('You must pass a valid router, got: ' .. type(opts.routes)) end
 
-	local net = {}
 	local mataables = opts.mataables
 	local routes = opts.routes
+
+	local net = { osPullEvent = os.pullEvent }
 	local daemons = {}
 	local runningDaemons = {}
 	local interfaces = {}
 
-
-	function networkDaemons(inter)
+	local function networkDaemons(inter)
 		while true do
 			local _, packet = coroutine.yield()
 
@@ -44,9 +44,7 @@ function create(opts)
 	end
 
 	function net.run()
-		-- stone.run()
-
-		-- stone.startDaemon('goldenDaemons')
+		
 	end
 
 	function net.stop()
@@ -54,11 +52,19 @@ function create(opts)
 			if type(runningDaemons[name]) == 'thread' and not net.stopDaemon(name) then return false end
 		end
 
-		for name, inter in pairs(interfaces) do
+		for _, inter in pairs(interfaces) do
 			inter.stop()
 		end
 
 		return true
+	end
+
+	function net.pullEvent(filter)
+		while true do
+			local ev = {net.osPullEvent()}
+			
+			if not net.handleEvent(ev) then return unpack(ev) end
+		end
 	end
 
 	function net.open(inter)
@@ -66,6 +72,8 @@ function create(opts)
 		if not inter.startDaemon('networkDaemons') then return false end
 
 		interfaces[inter.name] = inter
+
+		inter.run()
 
 		return true
 	end
@@ -102,9 +110,9 @@ function create(opts)
 
 		logging.debug('Stopping Daemon: ' .. name)
 
-		utils.erroredResume(daemon, { 'lcp', {
+		utils.erroredResume(daemon, 'lcp', {
 			command = 'daemon:stop'
-		} })
+		})
 
 		if coroutine.status(daemon) == 'dead' then
 			runningDaemons[name] = nil
@@ -117,11 +125,25 @@ function create(opts)
 		return true
 	end
 
-	function net.handle(ev)
-		return stone.handle(ev)
+	function net.checkEvent(ev)
+		for _, inter in pairs(interfaces) do
+			if inter.checkEvent(ev) then return true end
+		end
+		
+		return false
 	end
 
-	function net.checkEvent(ev) return stone.checkEvent(ev) end
+	function net.handleEvent(ev)
+		local found = false
+
+		for _, inter in pairs(interfaces) do
+			if inter.handleEvent(ev) then
+				found = true
+			end
+		end
+
+		return found
+	end
 
 	function net.send(packet)
 		local to = mat.parse(packet.to)
@@ -144,26 +166,6 @@ function create(opts)
 		return frame
 	end
 
-	-- net.stone = stone
-
-	-- stone.addDaemon('goldenDaemons', function(addr)
-	-- 	while true do
-	-- 		local _, frame = coroutine.yield()
-
-	-- 		if _ == 'lcp' then
-	-- 			if frame.command == 'daemon:stop' then
-	-- 				return
-	-- 			end
-	-- 		elseif _ == 'network' then
-	-- 			local packet = parseFrame(frame)
-
-	-- 			for name, daemon in pairs(runningDaemons) do
-	-- 				utils.erroredResume(daemon, { 'network', packet })
-	-- 			end
-	-- 		end
-	-- 	end
-	-- end)
-
 	return net
 end
 
@@ -173,7 +175,10 @@ function createInterface(opts)
 	if type(opts.inter) ~= 'table' then error('You must pass a valid low-level interface, got: ' .. type(opts.inter)) end
 	if type(opts.routes) ~= 'table' then error('You must pass a valid routes table, got: ' .. type(opts.routes)) end
 
-	local inter = {}
+	local sinter = opts.inter
+	local routes = opts.routes
+
+	local inter = { type = sinter.type, name = sinter.name }
 
 	local daemons = {}
 	local runningDaemons = {}
@@ -221,6 +226,16 @@ function createInterface(opts)
 
 		return true
 	end
+
+	function inter.run()
+		if not sinter.run() then return false end
+
+		return true
+	end
+
+	function inter.checkEvent(ev) return sinter.checkEvent(ev) end
+	function inter.stop() return sinter.stop() end
+	function inter.handleEvent(ev) return sinter.handleEvent(ev) end
 
 	return inter
 end

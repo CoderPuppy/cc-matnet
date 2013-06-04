@@ -3,6 +3,8 @@ id = os.getComputerID()
 os.loadAPI('apis/logging')
 os.loadAPI('apis/utils')
 
+local interID = 0
+
 function createInterface(opts)
 	if type(opts) ~= 'table' then error('You must specify side, channel and matables') end
 
@@ -23,12 +25,15 @@ function createInterface(opts)
 	if opts.channel >= 65535 then error('Channel must be less than 65535, got: ' .. tostring(opts.channel)) end
 	if type(opts.matables) ~= 'table' then error('You must pass a valid matable instance, got: ' .. type(opts.matables)) end
 
-	local inter = { id = id }
 	local modem = peripheral.wrap(opts.side)
 	local channel = opts.channel
+
+	local inter = { id = id, type = 'eth' }
 	local daemons = {}
 	local runningDaemons = {}
 
+	inter.name = inter.type .. tostring(interID)
+	interID = interID + 1
 
 	function inter.addDaemon(name, fn)
 		if type(fn) ~= 'function' then
@@ -48,8 +53,16 @@ function createInterface(opts)
 		return false
 	end
 
+	local running = false
+
 	function inter.run()
-		return true
+		if running then return true end
+
+		modem.open(channel)
+
+		running = modem.isOpen(channel)
+
+		return running
 	end
 
 	function inter.stop()
@@ -58,6 +71,10 @@ function createInterface(opts)
 		end
 
 		return true
+	end
+
+	function inter.checkEvent(ev)
+		return ev[1] == 'modem_message' and ev[2] == opts.side and ev[3] == opts.channel
 	end
 
 	function inter.startDaemon(name)
@@ -98,7 +115,7 @@ function createInterface(opts)
 		return true
 	end
 
-	function inter.handle(ev)
+	function inter.handleEvent(ev)
 		if not inter.checkEvent(ev) then return false end
 
 		local frame = parseEvent(ev)
