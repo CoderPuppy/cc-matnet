@@ -1,7 +1,7 @@
 function createServer(opts)
-	if type(opts) ~= 'table' then error('You must specify net and routes') end
+	if type(opts) ~= 'table' then error('You must specify an interface and a routes table') end
 
-	if type(opts.net) ~= 'table' then error('You must pass a valid network, got: ' .. type(opts.net)) end
+	if type(opts.inter) ~= 'table' then error('You must pass a valid interface, got: ' .. type(opts.inter)) end
 	if type(opts.routes) ~= 'table' then error('You must pass a valid routes table, got: ' .. type(opts.routes)) end
 
 	local server = {}
@@ -32,9 +32,9 @@ function createServer(opts)
 end
 
 function createClient(opts)
-	if type(opts) ~= 'table' then error('You must specify net and routes') end
+	if type(opts) ~= 'table' then error('You must specify an interface and a routes table') end
 
-	if type(opts.net) ~= 'table' then error('You must pass a valid network, got: ' .. type(opts.net)) end
+	if type(opts.inter) ~= 'table' then error('You must pass a valid interface, got: ' .. type(opts.inter)) end
 	if type(opts.routes) ~= 'table' then error('You must pass a valid routes table, got: ' .. type(opts.routes)) end
 	
 	local client = {}

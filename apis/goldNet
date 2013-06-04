@@ -10,12 +10,12 @@ function create(opts)
 	if type(opts.routes) ~= 'table' then error('You must pass a valid router, got: ' .. type(opts.routes)) end
 
 	local net = {}
+	local mataables = opts.mataables
+	local routes = opts.routes
 	local daemons = {}
 	local runningDaemons = {}
 	local interfaces = {}
 
-	local mataables = opts.mataables
-	local routes = opts.routes
 
 	function networkDaemons(inter)
 		while true do

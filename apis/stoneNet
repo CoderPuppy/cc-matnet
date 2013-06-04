@@ -4,20 +4,31 @@ os.loadAPI('apis/logging')
 os.loadAPI('apis/utils')
 
 function createInterface(opts)
-	if type(opts) ~= 'table' then error('You must specify modem, side and matables') end
+	if type(opts) ~= 'table' then error('You must specify side, channel and matables') end
 
-	if type(opts.modem) ~= 'table' then error('You must pass a valid modem, got: ' .. type(opts.modem)) end
+	if type(opts.side) ~= 'string' then error('You must pass a valid side, got: ' .. type(opts.side)) end
+
+	do
+		local ok, res = pcall(peripheral.getType, opts.side)
+
+		if not ok and res:sub(#res - 12) == 'Invalid side.' then
+			error('You must pass a valid side (left, right, top, bottom, front, back), got: ' .. opts.side)
+		elseif ok and res ~= 'modem' then
+			error('There must be a modem on the "' .. opts.side .. '", got: ' .. res)
+		end
+	end
+
 	if type(opts.channel) ~= 'number' then error('Channel must be a number, got: ' .. type(opts.channel)) end
 	if opts.channel <= 0 then error('Channel must be greater than 0, got: ' .. tostring(opts.channel)) end
 	if opts.channel >= 65535 then error('Channel must be less than 65535, got: ' .. tostring(opts.channel)) end
 	if type(opts.matables) ~= 'table' then error('You must pass a valid matable instance, got: ' .. type(opts.matables)) end
 
 	local inter = { id = id }
+	local modem = peripheral.wrap(opts.side)
+	local channel = opts.channel
 	local daemons = {}
 	local runningDaemons = {}
 
-	local modem = opts.modem
-	local channel = opts.channel
 
 	function inter.addDaemon(name, fn)
 		if type(fn) ~= 'function' then
