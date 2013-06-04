@@ -2,8 +2,22 @@ function createServer(net)
 	local server = {}
 
 	function server.run()
-		
+		net.startDaemon('dnsd')
 	end
+
+	net.addDaemon('dnsd', function(net)
+		while true do
+			local _, packet = coroutine.yield()
+
+			if _ == 'lcp' then
+				if packet.command == 'daemon:stop' then
+					return
+				end
+			elseif _ == 'network' and packet.type == 'dns' then
+
+			end
+		end
+	end)
 
 	return server
 end
