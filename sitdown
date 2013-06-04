@@ -114,16 +114,20 @@ function api()
 		local filess = {fs.list(src)}
 		local list = {}
 		local indexes = {1}
-		local path = {}
+		-- local path = {}
+		local path = ''
 		local part = 1
 
 		while part > 0 do
+			sleep(0)
+
 			repeat
 				-- print(indexes[part])
 				-- print(indexes[part] >= #filess[part])
 				if indexes[part] > #(filess[part]) then
 					part = part - 1
-					table.remove(path, #path)
+					-- table.remove(path, #path)
+					path = fs.combine(path, '..')
 					if part > 0 then
 						indexes[part] = indexes[part] + 1
 					end
@@ -131,19 +135,27 @@ function api()
 				end
 				-- print(part)
 
-				table.insert(path, filess[part][indexes[part]])
-				part = part + 1
-				indexes[part] = 1
+				-- table.insert(path, filess[part][indexes[part]])
 
-				local file = table.concat(path, '/')
-
-				filess[part] = fs.list(fs.combine(src, file))
-				-- print(#(filess[part]))
+				local file = fs.combine(path, filess[part][indexes[part]])
 
 				-- print(file)
 
 				if filter(file) then
-					table.insert(list, file)
+					path = file
+					part = part + 1
+					indexes[part] = 1
+
+					-- local file = table.concat(path, '/')
+
+					filess[part] = fs.list(fs.combine(src, file))
+					-- print(#(filess[part]))
+
+					if not fs.isDir(file) then
+						table.insert(list, file)
+					end
+				else
+					indexes[part] = indexes[part] + 1
 				end
 			until true
 		end
@@ -151,7 +163,7 @@ function api()
 		return list
 	end
 
-	function ignorer(ignoreFile)
+	function ignorer(ignoreList)
 		return function(file)
 
 		end
@@ -189,7 +201,42 @@ if shell and shell.getRunningProgram():sub(-7) == 'sitdown' then
 
 			if h == nil then error('Couldn\'t open ' .. fs.combine(root, '.files')) end
 
-			h.write(table.concat(sitdown.sit(root, function() return true end), '\n'))
+			-- print(#sitdown.sit(root, function(file)
+			-- 	if file:sub(1, 4) == '.git' then
+			-- 		return false
+			-- 	end
+
+			-- 	return true
+			-- end))
+
+			-- print('198')
+
+			h.write(table.concat(sitdown.sit(root, function(file)
+				if file:sub(1, 4) == '.git' then
+					return false
+				end
+
+				if file:sub(1, 3) == 'dev' then
+					return false
+				end
+
+				if file:sub(1, 4) == 'rom/' or file == 'rom' then
+					return false
+				end
+
+				if file:sub(-10) == '.stackdump' then
+					return false
+				end
+
+				if file:sub(-6) == '.files' then
+					return false
+				end
+
+				return true
+			end), '\n'))
+
+			-- print('208')
+
 			h.close()
 		end
 	elseif argv[1] == 'down' then
