@@ -1,0 +1,34 @@
+os.loadAPI('apis/goldNet')
+os.loadAPI('apis/matable')
+os.loadAPI('apis/loopback')
+os.loadAPI('apis/ndp')
+
+local matables = matable.create()
+local routes = {}
+local net = goldNet.create({
+	routes = routes,
+	matables = matables
+})
+local weth = goldNet.createInterface({
+	inter = stoneNet.createInterface({
+		side = 'right',
+		channel = 1,
+		matables = matables
+	}),
+	routes = routes
+})
+local lo = loopback.createInterface({ routes = routes })
+local nd = ndp.createClient({
+	inter = weth,
+	routes = routes
+})
+
+net.open(weth)
+net.open(lo)
+
+net.send(goldNet.createPacket({
+	to = '127::',
+	from = '127::',
+	data = ({...})[1],
+	type = 'hello'
+}))

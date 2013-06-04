@@ -1,0 +1,63 @@
+os.loadAPI('apis/goldNet')
+os.loadAPI('apis/matable')
+os.loadAPI('apis/loopback')
+os.loadAPI('apis/ndp')
+os.loadAPI('apis/dns')
+
+logging.level(2)
+
+local matables = matable.create()
+local routes = {}
+local net = goldNet.create({
+	routes = routes,
+	matables = matables
+})
+local weth = goldNet.createInterface({
+	inter = stoneNet.createInterface({
+		side = 'right',
+		channel = 1,
+		matables = matables
+	}),
+	routes = routes
+})
+local lo = loopback.createInterface({ routes = routes })
+local nd = ndp.createClient({
+	inter = weth,
+	routes = routes
+})
+local dnsd = dns.createServer({
+	net = net
+})
+
+net.open(weth)
+net.open(lo)
+
+net.addDaemon('hellod', function(net)
+	while true do
+		local _, packet = coroutine.yield()
+
+		if _ == 'lcp' then
+			if packet.command == 'daemon:stop' then
+				return
+			end
+		elseif _ == 'network' and packet.type == 'hello' then
+			print('Hello, ', packet.data, '!!!')
+		end
+	end
+end)
+
+net.startDaemon('hellod')
+
+dnsd.run()
+
+while true do
+	local ev = {net.pullEvent()}
+
+	if ev[1] == 'char' and ev[2] == 'q' then
+		if net.stop() then
+			return
+		else
+			logging.warn('didn\' stop')
+		end
+	end
+end
