@@ -1,4 +1,10 @@
-function createServer(net)
+function createServer(opts)
+	if type(opts) ~= 'table' then error('You must specify a network') end
+
+	if type(opts.net) ~= 'table' then error('You must pass a valid network, got: ' .. type(opts.net)) end
+
+	local net = opts.net
+
 	local server = {}
 
 	function server.run()
