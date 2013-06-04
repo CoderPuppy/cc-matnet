@@ -50,3 +50,13 @@ end
 function fatal(...)
 	output(5, ...)
 end
+
+function level(v)
+	if type(v) ~= 'number' then
+		return logLevel;
+	elseif v < 0 then
+		error('Log Level cannot be negative')
+	else
+		logLevel = v
+	end
+end
