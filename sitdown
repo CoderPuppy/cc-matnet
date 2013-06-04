@@ -1,0 +1,209 @@
+function api()
+	local function split(str, sSeparator, nMax, bRegexp)
+		assert(sSeparator ~= '')
+		assert(nMax == nil or nMax >= 1)
+
+		local aRecord = {}
+
+		if #str > 0 then
+			local bPlain = not bRegexp
+			nMax = nMax or -1
+
+			local nField=1 nStart=1
+			local nFirst,nLast = str:find(sSeparator, nStart, bPlain)
+			while nFirst and nMax ~= 0 do
+				aRecord[nField] = str:sub(nStart, nFirst-1)
+				nField = nField+1
+				nStart = nLast+1
+				nFirst,nLast = str:find(sSeparator, nStart, bPlain)
+				nMax = nMax-1
+			end
+			aRecord[nField] = str:sub(nStart)
+		end
+
+		return aRecord
+	end
+
+	local color = term.isColor()
+
+	function request(url)
+		if color then
+			term.setTextColor(colors.green)
+		end
+		term.write('GET ' .. url)
+		print('')
+		term.setTextColor(colors.white)
+
+		http.request(url)
+
+		while true do
+			local ev, p1, p2 = os.pullEvent()
+
+			if p1 == url then
+				if ev == 'http_failure' then
+					if color then
+						term.setTextColor(colors.red)
+					end
+					term.write('ERROR ' .. url)
+					print('')
+					term.setTextColor(colors.white)
+
+					return nil
+				elseif ev == 'http_success' then
+					if color then
+						term.setTextColor(colors.green)
+					end
+					term.write('SUCCESS ' .. p2.getResponseCode() .. ' ' .. url)
+					print('')
+					term.setTextColor(colors.white)
+					return p2
+				end
+			end
+		end
+	end
+
+	local function writeFile(path, contents)
+		local part = 1
+		while true do
+			local fileH = fs.open(path, 'w')
+
+			if fileH == nil then
+				if part > 500 then return false end
+				fs.makeDir(fs.combine(path, string.rep('../', part)))
+				part = part + 1
+			else
+				fileH.write(contents)
+				fileH.close()
+				return true
+			end
+		end
+	end
+
+	function dirdown(root, dest)
+		local filesH = request(root .. '/.files')
+
+		fs.makeDir(dest)
+
+		if filesH == nil then return false end
+
+		local files = split(filesH.readAll(), '\n')
+
+		for i = 1, #files do
+			local file = files[i]
+			down(root .. '/' .. file, fs.combine(dest, file))
+		end
+
+		filesH.close()
+
+		return true
+	end
+
+	function down(file, dest)
+		local fileH = request(file)
+
+		if fileH == nil then
+			return dirdown(file, dest)
+		else
+			writeFile(dest, fileH.readAll())
+			fileH.close()
+			return true
+		end
+	end
+
+	function sit(src, filter)
+		local filess = {fs.list(src)}
+		local list = {}
+		local indexes = {1}
+		local path = {}
+		local part = 1
+
+		while part > 0 do
+			repeat
+				-- print(indexes[part])
+				-- print(indexes[part] >= #filess[part])
+				if indexes[part] > #(filess[part]) then
+					part = part - 1
+					table.remove(path, #path)
+					if part > 0 then
+						indexes[part] = indexes[part] + 1
+					end
+					break
+				end
+				-- print(part)
+
+				table.insert(path, filess[part][indexes[part]])
+				part = part + 1
+				indexes[part] = 1
+
+				local file = table.concat(path, '/')
+
+				filess[part] = fs.list(fs.combine(src, file))
+				-- print(#(filess[part]))
+
+				-- print(file)
+
+				if filter(file) then
+					table.insert(list, file)
+				end
+			until true
+		end
+
+		return list
+	end
+
+	function ignorer(ignoreFile)
+		return function(file)
+
+		end
+	end
+end
+
+if shell and shell.getRunningProgram():sub(-7) == 'sitdown' then
+	local sitdown = {}
+	setfenv(api, sitdown)
+
+	for k, v in pairs(_G) do
+		sitdown[k] = v
+	end
+	api()
+
+	local function usage()
+		print('sitdown sit <dir>')
+		print('  Generate a .files from all the files in that directory and all sub directories')
+		print('')
+		print('sitdown down <url> <dest>')
+		print('  Download url to dest')
+		print('  Downloads directories by downloading all files in the .files file')
+	end
+
+	local argv = {...}
+
+	if #argv < 1 then
+		usage()
+	elseif argv[1] == 'sit' then
+		if #argv < 2 then
+			usage()
+		else
+			local root = fs.combine(shell.dir(), argv[2])
+			local h = fs.open(fs.combine(root, '.files'), 'w')
+
+			if h == nil then error('Couldn\'t open ' .. fs.combine(root, '.files')) end
+
+			h.write(table.concat(sitdown.sit(root, function() return true end), '\n'))
+			h.close()
+		end
+	elseif argv[1] == 'down' then
+		if #argv < 2 then
+			usage()
+		else
+			if #argv < 3 then
+				argv[3] = select(3, string.find(argv[2], '/([^/]+)$'))
+			end
+
+			sitdown.down(argv[2], fs.combine(shell.dir(), argv[3]))
+		end
+	end
+else
+	setfenv(api, getfenv())
+	api()
+end
