@@ -23,4 +23,4 @@ function table_slice(values,i1,i2)
 end
 
 m = peripheral.wrap('right')
-m.transmit(tonumber(argv[1]), tonumber(argv[2]), textutils.unserialize(table.concat(table_slice(argv, 3), ' ')))
+m.transmit(tonumber(argv[1]), tonumber(argv[2]), textutils.serialize(textutils.unserialize(table.concat(table_slice(argv, 3), ' '))))
