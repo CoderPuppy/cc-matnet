@@ -102,7 +102,7 @@ function createInterface(opts)
 		-- Handle daemons that aren't started
 		if type(daemon) ~= 'thread' then return true end
 
-		logging.debug('Stopping Daemon: ' .. name)
+		logging.debug(inter.name .. ': Stopping Daemon: ' .. name)
 
 		utils.erroredResume(daemon, { 'lcp', {
 			command = 'daemon:stop'

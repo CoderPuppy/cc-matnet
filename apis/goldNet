@@ -86,6 +86,8 @@ function create(opts)
 	end
 
 	function net.close(inter)
+		logging.debug('Closing interface: ', inter.name)
+
 		if not inter.stopDaemon('networkDaemons') then return false end
 		if not inter.stop() then return false end
 
@@ -229,6 +231,8 @@ function createInterface(opts)
 
 		-- Handle daemons that aren't started
 		if type(daemon) ~= 'thread' then return true end
+
+		logging.debug(inter.name .. ': Stopping Daemon: ' .. name)
 
 		utils.erroredResume(daemon, 'lcp', {
 			command = 'daemon:stop'
