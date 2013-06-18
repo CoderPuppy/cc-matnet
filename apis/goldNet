@@ -4,10 +4,10 @@ os.loadAPI('apis/logging')
 os.loadAPI('apis/mat')
 
 function create(opts)
-	if type(opts) ~= 'table' then error('You must specify mataables and routes') end
+	if type(opts) ~= 'table' then error('You must specify matables and routes') end
 
-	if type(opts.matables) ~= 'table' then error('You must pass a valid mataable instance, got: ' .. type(opts.mataables)) end
-	if type(opts.routes) ~= 'table' then error('You must pass a valid router, got: ' .. type(opts.routes)) end
+	if type(opts.matables) ~= 'table' then error('You must pass a valid matable instance, got: ' .. type(opts.mataables)) end
+	if type(opts.routes) ~= 'table' then error('You must pass a valid routes table, got: ' .. type(opts.routes)) end
 
 	local mataables = opts.mataables
 	local routes = opts.routes
