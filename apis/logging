@@ -1,41 +1,44 @@
-local color = { colors.black, colors.white }
-local colors = {
-	{ colors.black, colors.white },
-	{ colors.black, colors.white },
+local dcolor = { colors.black, colors.white }
+local lcolors = {
 	{ colors.white, colors.black },
 	{ colors.white, colors.black },
-	{ colors.white, colors.black }
+	{ colors.white, colors.black },
+	{ colors.black, colors.white },
+	{ colors.black, colors.white }
 }
 
-logLevel = 1
+logLevel = 5
 
 if term.isColor() then
-	colors[3] = { colors.yellow, colors.black }
-	colors[4] = { colors.red, colors.yellow }
-	colors[5] = { colors.red, colors.black }
+	-- Fatal
+	lcolors[1] = { colors.red, colors.black }
+	-- Error
+	lcolors[2] = { colors.red, colors.yellow }
+	-- Warning
+	lcolors[3] = { colors.yellow, colors.black }
 end
 
 function output(level, ...)
-	if logLevel < level then return end
+	if logLevel > level then return end
 
-	term.setBackgroundColor(colors[level][1])
-	term.setTextColor(colors[level][2])
+	term.setBackgroundColor(lcolors[level][1])
+	term.setTextColor(lcolors[level][2])
 
 	for _, v in pairs({...}) do
 		write(tostring(v))
 	end
 
-	term.setBackgroundColor(color[1])
-	term.setTextColor(color[2])
+	term.setBackgroundColor(dcolor[1])
+	term.setTextColor(dcolor[2])
 
 	write('\n')
 end
 
-function log(...)
+function fatal(...)
 	output(1, ...)
 end
 
-function debug(...)
+function error(...)
 	output(2, ...)
 end
 
@@ -43,11 +46,11 @@ function warn(...)
 	output(3, ...)
 end
 
-function error(...)
+function log(...)
 	output(4, ...)
 end
 
-function fatal(...)
+function debug(...)
 	output(5, ...)
 end
 
