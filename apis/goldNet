@@ -52,8 +52,15 @@ function create(opts)
 			if type(runningDaemons[name]) == 'thread' and not net.stopDaemon(name) then return false end
 		end
 
-		for _, inter in pairs(interfaces) do
-			inter.stop()
+		-- This is to work around next erroring when the table it's iterating is modified in an iteration
+		local interNames = {}
+
+		for name in pairs(interfaces) do
+			interNames[#interNames + 1] = name
+		end
+
+		for i = 1, #interNames do
+			net.close(interfaces[interNames[i]])
 		end
 
 		return true
@@ -73,13 +80,14 @@ function create(opts)
 
 		interfaces[inter.name] = inter
 
-		inter.run()
+		if not inter.run() then return false end
 
 		return true
 	end
 
 	function net.close(inter)
 		if not inter.stopDaemon('networkDaemons') then return false end
+		if not inter.stop() then return false end
 
 		interfaces[inter.name] = nil
 
@@ -222,9 +230,9 @@ function createInterface(opts)
 		-- Handle daemons that aren't started
 		if type(daemon) ~= 'thread' then return true end
 
-		utils.erroredResume(daemon, { 'lcp', {
+		utils.erroredResume(daemon, 'lcp', {
 			command = 'daemon:stop'
-		} })
+		})
 
 		if coroutine.status(daemon) == 'dead' then
 			runningDaemons[name] = nil
@@ -239,13 +247,51 @@ function createInterface(opts)
 
 	function inter.run()
 		if not sinter.run() then return false end
+		if not sinter.startDaemon('golden') then return false end
+
+		return true
+	end
+
+	function inter.send(packet, route)
+		sinter.send({
+			to = route.id or -1,
+			from = sinter.id,
+			data = packet,
+			type = 'golden'
+		})
+	end
+
+	function inter.stop()
+		-- Loop through daemons because inside it modifies runningDaemons which crashes next
+		for name in pairs(daemons) do
+			if not inter.stopDaemon(name) then return false end
+		end
+
+		if not sinter.stop() then return false end
 
 		return true
 	end
 
 	function inter.checkEvent(ev) return sinter.checkEvent(ev) end
-	function inter.stop() return sinter.stop() end
 	function inter.handleEvent(ev) return sinter.handleEvent(ev) end
+
+	sinter.addDaemon('golden', function(inter)
+		while true do
+			local _, frame = coroutine.yield()
+
+			if _ == 'lcp' then
+				if frame.command == 'daemon:stop' then
+					return
+				end
+			elseif _ == 'link' and frame.type == 'golden' then
+				local packet = frame.data
+
+				for name, daemon in pairs(runningDaemons) do
+					utils.erroredResume(daemon, 'network', packet)
+				end
+			end
+		end
+	end)
 
 	return inter
 end

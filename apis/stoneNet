@@ -70,6 +70,10 @@ function createInterface(opts)
 			if type(runningDaemons[name]) == 'thread' and not inter.stopDaemon(name) then return false end
 		end
 
+		modem.close(channel)
+
+		if modem.isOpen(channel) then return false end
+
 		return true
 	end
 
