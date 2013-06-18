@@ -27,6 +27,7 @@ function createInterface(opts)
 
 	local modem = peripheral.wrap(opts.side)
 	local channel = opts.channel
+	local side = opts.side
 
 	local inter = { id = id, type = 'eth' }
 	local daemons = {}
@@ -43,14 +44,6 @@ function createInterface(opts)
 		daemons[name] = fn
 
 		return true
-	end
-
-	function inter.checkEvent(ev)
-		if ev[1] == 'modem_message' and ev[2] == side and ev[3] == channel then
-			return true
-		end
-
-		return false
 	end
 
 	local running = false
@@ -75,10 +68,6 @@ function createInterface(opts)
 		if modem.isOpen(channel) then return false end
 
 		return true
-	end
-
-	function inter.checkEvent(ev)
-		return ev[1] == 'modem_message' and ev[2] == opts.side and ev[3] == opts.channel
 	end
 
 	function inter.startDaemon(name)
@@ -120,7 +109,9 @@ function createInterface(opts)
 	end
 
 	function inter.handleEvent(ev)
-		if not inter.checkEvent(ev) then return false end
+		if ev[1] ~= 'modem_message' or ev[2] ~= side or ev[3] ~= channel then
+			return false
+		end
 
 		local frame = parseEvent(ev)
 

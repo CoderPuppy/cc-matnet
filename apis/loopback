@@ -80,7 +80,6 @@ function createInterface(opts)
 		end
 	end
 
-	function inter.checkEvent() return false end
 	function inter.handleEvent() return false end
 	function inter.run() return true end
 

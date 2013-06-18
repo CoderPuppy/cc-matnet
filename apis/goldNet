@@ -152,14 +152,6 @@ function create(opts)
 		return true
 	end
 
-	function net.checkEvent(ev)
-		for _, inter in pairs(interfaces) do
-			if inter.checkEvent(ev) then return true end
-		end
-		
-		return false
-	end
-
 	function net.handleEvent(ev)
 		local found = false
 
@@ -304,7 +296,6 @@ function createInterface(opts)
 		return true
 	end
 
-	function inter.checkEvent(ev) return sinter.checkEvent(ev) end
 	function inter.handleEvent(ev) return sinter.handleEvent(ev) end
 
 	sinter.addDaemon('golden', function(inter)
