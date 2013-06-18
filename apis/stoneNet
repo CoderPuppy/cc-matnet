@@ -13,7 +13,7 @@ function createInterface(opts)
 	do
 		local ok, res = pcall(peripheral.getType, opts.side)
 
-		if not ok and res:sub(#res - 12) == 'Invalid side.' then
+		if (not ok and res:sub(#res - 12) == 'Invalid side.') or res == nil then
 			error('You must pass a valid side (left, right, top, bottom, front, back), got: ' .. opts.side)
 		elseif ok and res ~= 'modem' then
 			error('There must be a modem on the "' .. opts.side .. '", got: ' .. res)
