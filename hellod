@@ -3,11 +3,13 @@ os.loadAPI('apis/matable')
 os.loadAPI('apis/loopback')
 os.loadAPI('apis/ndp')
 os.loadAPI('apis/dns')
+os.loadAPI('apis/multicast')
+os.loadAPI('apis/router')
 
 logging.level(2)
 
 local matables = matable.create()
-local routes = {}
+local routes = router.create()
 local net = goldNet.create({
 	routes = routes,
 	matables = matables
@@ -25,12 +27,18 @@ local nd = ndp.createClient({
 	inter = weth,
 	routes = routes
 })
-local dnsd = dns.createServer({
-	net = net
-})
+-- local dnsd = dns.createDaemon({
+-- 	net = net
+-- })
+-- local ndpd = ndp.createDaemon({
+-- 	inter = weth
+-- })
 
 net.open(weth)
 net.open(lo)
+
+multicast.listen(net, '240:255:224:0/24')
+-- net.listen('240:255:224:255')
 
 net.addDaemon('hellod', function(net)
 	while true do
@@ -48,7 +56,8 @@ end)
 
 net.startDaemon('hellod')
 
-dnsd.run()
+-- dnsd.run()
+-- ndpd.run()
 
 while true do
 	local ev = {net.pullEvent()}

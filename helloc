@@ -2,9 +2,11 @@ os.loadAPI('apis/goldNet')
 os.loadAPI('apis/matable')
 os.loadAPI('apis/loopback')
 os.loadAPI('apis/ndp')
+os.loadAPI('apis/router')
+os.loadAPI('apis/multicast')
 
 local matables = matable.create()
-local routes = {}
+local routes = router.create()
 local net = goldNet.create({
 	routes = routes,
 	matables = matables
@@ -26,9 +28,12 @@ local nd = ndp.createClient({
 net.open(weth)
 net.open(lo)
 
+multicast.initInter(net, routes, weth, '240:255:224::/24')
+multicast.initInter(net, routes, lo, '240:255:224::/24')
+
 net.send(goldNet.createPacket({
-	to = '127::',
-	from = '127::',
-	data = ({...})[1],
+	to = '240:255:224:255',
+	from = '::',
+	data = table.concat({...}, ' '),
 	type = 'hello'
 }))
