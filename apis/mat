@@ -39,7 +39,8 @@ function parse(mat)
 	local m, subnetStart
 
 	local mata = {
-		netBits = nil
+		netBits = nil,
+		matchBits = matSize
 	}
 
 	-- Match the subnet
@@ -47,6 +48,7 @@ function parse(mat)
 
 	if m[1] and #m == 3 then
 		mata.netBits = tonumber(m[3])
+		mata.matchBits = mata.netBits
 		mat = mat:sub(1, m[1] - 1)
 	end
 
@@ -55,6 +57,8 @@ function parse(mat)
 	local outofRow = false
 	local expander
 	local remove = 0
+
+	-- print(textutils.serialize(matArr))
 
 	-- Find extra blank values (Can't remove them here because of a bug with LuaJ)
 	for i, v in ipairs(matArr) do
@@ -84,7 +88,7 @@ function parse(mat)
 	-- Expand the expander
 	local newMatArr = {}
 
-	if expanderFound and #matArr < matParts then
+	-- if expanderFound and #matArr < matParts then
 		for i, v in pairs(matArr) do
 			if v == '' then
 				for _ = 1,(matParts - (#matArr - 1)) do
@@ -94,8 +98,10 @@ function parse(mat)
 				table.insert(newMatArr, tonumber(v))
 			end
 		end
-		utils.table_slice(matArr, 1, expander - 1)
-	end
+		-- if expanderFound then
+			-- utils.table_slice(newMatArr, 1, expander - 1)
+		-- end
+	-- end
 
 	mata.parts = newMatArr
 
@@ -162,8 +168,10 @@ end
 -- 10::/8 private network subnet (these are the mats that computers on private networks should get)
 -- 10::1 private network router
 -- 224::/8 multicast subnet
+-- 240:255::/8 dev subnet ->
+--   240:255:224:0/24 multicast dev subnet
 
-function createNetmask(bits)
+function createAddrMask(bits)
 	if bits > matSize then error('Netmasks cannot be larger than ' .. tostring(matSize) .. ' got: ' .. tostring(bits)) end
 
 	return bit.blshift(2^bits - 1, matSize - bits)
@@ -174,11 +182,23 @@ function createNetwork(mat)
 
 	if type(mat.netBits) ~= 'number' then error('Net Bits are required for creating a network, got: ' .. type(mat.netBits)) end
 
-	local net = { mask = createNetmask(mat.netBits), parts = mat.parts, netBits = mat.netBits }
+	local net = { mask = createAddrMask(mat.netBits), parts = mat.parts, netBits = mat.netBits }
 
 	net.netNum = bit.band(net.mask, toNum(mat))
 
 	return net
+end
+
+function createMatcher(mat)
+	validateMAT(mat)
+
+	if type(mat.matchBits) ~= 'number' then error('Match bits are required for creating a matcher, got: ' .. type(mat.matchBits)) end
+
+	local addr = { mask = createAddrMask(mat.matchBits), parts = mat.parts, matchBits = mat.matchBits }
+
+	addr.matchNum = bit.band(addr.mask, toNum(mat))
+
+	return addr
 end
 
 function match(input, matcher)
@@ -187,14 +207,31 @@ function match(input, matcher)
 
 	if (type(matcher.netNum) ~= 'number' or type(matcher.mask) ~= 'number') and type(matcher.netBits) == 'number' then
 		matcher = createNetwork(matcher)
-	elseif type(matcher.netBits) ~= 'number' then
-		return toNum(input) == toNum(matcher)
+	end
+	if type(matcher.netBits) == 'number' then
+		return bit.band(toNum(input), matcher.mask) == matcher.netNum
+	end
+	if (type(matcher.matchNum) ~= 'number' or type(matcher.mask ~= 'number')) and type(matcher.matchBits) == 'number' then
+		matcher = createMatcher(matcher)
+	end
+	if type(matcher.matchBits) == 'number' then
+		return bit.band(toNum(input), matcher.mask) == matcher.matchNum
 	end
 
-	return bit.band(toNum(input), matcher.mask) == matcher.netNum
+	return toNum(input) == toNum(matcher)
 end
 
 function toNum(mat)
 	validateMAT(mat)
 	return bit.blshift(mat.parts[1], 24) + bit.blshift(mat.parts[2], 16) + bit.blshift(mat.parts[3], 8) + mat.parts[4]
+end
+
+undefined = createMatcher(parse('::'))
+
+function wrap(mat)
+	if type(mat) == 'string' then
+		return parse(mat)
+	elseif type(mat) == 'table' and type(mat.parts) == 'table' and #mat.parts == matParts then
+		return mat
+	end
 end
