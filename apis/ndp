@@ -1,4 +1,4 @@
-function createServer(opts)
+function createDaemon(opts)
 	if type(opts) ~= 'table' then error('You must specify an interface and a routes table') end
 
 	if type(opts.inter) ~= 'table' then error('You must pass a valid interface, got: ' .. type(opts.inter)) end
@@ -14,15 +14,23 @@ function createServer(opts)
 		while true do
 			local _, packet = coroutine.yield()
 
-			if _ == 'lcp' then
-				if packet.command == 'daemon:stop' then
-					return
+			repeat
+				if _ == 'lcp' then
+					if packet.command == 'daemon:stop' then
+						return
+					end
+				elseif _ == 'network' then
+					if packet.type == 'ndp' then
+						local data = textutils.unserialize(packet.data)
+
+						if data.command == nil then break end
+
+						if data.command == 'neighbor:lookup' and mat.match(mat, data.mat) then
+							
+						end
+					end
 				end
-			elseif _ == 'network' then
-				if packet.type == 'ndp' then
-					
-				end
-			end
+			until true
 		end
 	end
 
