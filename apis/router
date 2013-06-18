@@ -1,6 +1,19 @@
 function create()
+	local router = {}
 	local routes = {}
-	local mappings = {}
 
-	return routes
+	function router.add(ma, route)
+		routes[#routes + 1] = { ma, route }
+	end
+
+	function router.each(fn)
+		for i = 1, #routes do
+			local ma, route = unpack(routes[i])
+			fn(ma, route, i)
+		end
+
+		return router
+	end
+
+	return router
 end

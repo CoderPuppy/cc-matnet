@@ -13,7 +13,7 @@ function createInterface(opts)
 
 	local routes = opts.routes
 
-	routes[mat.createNetwork(mat.parse('127::/8'))] = inter
+	routes.add(mat.createNetwork(mat.parse('127::/8')), { inter = inter })
 
 	local daemons = {}
 	local runningDaemons = {}

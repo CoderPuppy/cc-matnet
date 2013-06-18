@@ -148,8 +148,18 @@ function create(opts)
 	function net.send(packet)
 		local to = mat.parse(packet.to)
 
-		for ma, inter in pairs(routes) do
-			if mat.match(to, ma) and inter.send(packet) then break end
+		routes.each(function(ma, route)
+			-- print(ma.matchBits)
+			-- print(mat.toString(ma), ' == ', mat.toString(to), ':')
+
+			if mat.match(to, ma) then
+				-- print('    true')
+				-- print(route.inter.name)
+				route.inter.send(packet, route)
+			-- else
+			-- 	print('    false')
+			end
+		end)
 		end
 	end
 
