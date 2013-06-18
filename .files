@@ -6,6 +6,7 @@ apis/logging
 apis/loopback
 apis/mat
 apis/matable
+apis/multicast
 apis/ndp
 apis/router
 apis/stoneNet
