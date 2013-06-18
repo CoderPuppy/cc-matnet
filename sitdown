@@ -26,6 +26,15 @@ function api()
 
 	local color = term.isColor()
 
+	local function error(url)
+		if color then
+			term.setTextColor(colors.red)
+		end
+		term.write('ERROR ' .. url)
+		print('')
+		term.setTextColor(colors.white)
+	end
+
 	function request(url)
 		if color then
 			term.setTextColor(colors.green)
@@ -41,15 +50,14 @@ function api()
 
 			if p1 == url then
 				if ev == 'http_failure' then
-					if color then
-						term.setTextColor(colors.red)
-					end
-					term.write('ERROR ' .. url)
-					print('')
-					term.setTextColor(colors.white)
+					error(url)
 
 					return nil
 				elseif ev == 'http_success' then
+					-- if p2.getResponseCode() ~= 200 then
+					-- 	error(url)
+					-- end
+
 					if color then
 						term.setTextColor(colors.green)
 					end
@@ -80,7 +88,16 @@ function api()
 	end
 
 	function dirdown(root, dest)
-		local filesH = request(root .. '/.files')
+		local filesH
+
+		if root:sub(-6) == '.files' then
+			filesH = request(root)
+			root = root:sub(1, -7)
+		else
+			filesH = request(root .. '/.files')
+		end
+
+		-- print(#filesH.readAll())
 
 		fs.makeDir(dest)
 
@@ -88,9 +105,22 @@ function api()
 
 		local files = split(filesH.readAll(), '\n')
 
+		-- print(#files)
+
 		for i = 1, #files do
 			local file = files[i]
-			down(root .. '/' .. file, fs.combine(dest, file))
+			-- print(file)
+
+			-- print(root .. '/' .. file)
+
+			local r = request(root .. '/' .. file)
+
+			if r then
+				writeFile(fs.combine(dest, file), r.readAll())
+				r.close()
+			end
+			
+			-- down(root .. '/' .. file, fs.combine(dest, file))
 		end
 
 		filesH.close()
@@ -99,6 +129,10 @@ function api()
 	end
 
 	function down(file, dest)
+		if file:sub(-6) == '.files' then
+			return dirdown(file, dest)
+		end
+
 		local fileH = request(file)
 
 		if fileH == nil then
