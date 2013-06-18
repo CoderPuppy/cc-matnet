@@ -16,21 +16,35 @@ function create(opts)
 	local daemons = {}
 	local runningDaemons = {}
 	local interfaces = {}
-	local addresses = {}
+	local allowedAddresses = { { mat.createMatcher(mat.wrap('::')), true }}
 
 	local function networkDaemons(inter)
 		while true do
 			local _, packet = coroutine.yield()
 
-			if _ == 'lcp' then
-				if packet.command == 'daemon:stop' then
-					return
+			repeat
+				if _ == 'lcp' then
+					if packet.command == 'daemon:stop' then
+						return
+					end
+				elseif _ == 'network' then
+					local to = mat.wrap(packet.to)
+					local allowed = false
+					local allowedBits = 0
+					for i = 1, #allowedAddresses do
+						local ma, allow = unpack(allowedAddresses[i])
+						if ma.matchBits >= allowedBits and mat.match(to, ma) then
+							allowedBits = ma.matchBits
+							allowed = allow
+						end
+					end
+					if not allowed then break end
+
+					for _, daemon in pairs(runningDaemons) do
+						utils.erroredResume(daemon, 'network', packet)
+					end
 				end
-			elseif _ == 'network' then
-				for _, daemon in pairs(runningDaemons) do
-					utils.erroredResume(daemon, 'network', packet)
-				end
-			end
+			until true
 		end
 	end
 
@@ -197,6 +211,7 @@ function create(opts)
 
 	function net.listen(address)
 		address = mat.wrap(address)
+		allowedAddresses[#allowedAddresses + 1] = { address, true }
 	end
 
 	return net

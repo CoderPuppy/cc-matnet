@@ -124,6 +124,10 @@ function createInterface(opts)
 
 		local frame = parseEvent(ev)
 
+		if frame.to ~= id and frame.to ~= -1 and not inter.promisc then
+			return false
+		end
+
 		for name, daemon in pairs(runningDaemons) do
 			utils.erroredResume(daemon, 'link', frame)
 		end
