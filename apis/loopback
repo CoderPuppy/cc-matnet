@@ -51,9 +51,9 @@ function createInterface(opts)
 
 		logging.debug(inter.name .. ': Stopping Daemon: ' .. name)
 
-		utils.erroredResume(daemon, { 'lcp', {
+		utils.erroredResume(daemon, 'lcp', {
 			command = 'daemon:stop'
-		} })
+		})
 
 		if coroutine.status(daemon) == 'dead' then
 			runningDaemons[name] = nil
