@@ -31,9 +31,21 @@ net.open(lo)
 multicast.initInter(net, routes, weth, '240:255:224::/24')
 multicast.initInter(net, routes, lo, '240:255:224::/24')
 
+routes.add('1::', { inter = weth, id = -1 })
+-- routes.add('::', { inter = weth, id = 1 })
+
+net.send(goldNet.createPacket({
+	to = '::',
+	from = '::',
+	-- data = table.concat({...}, ' '),
+	data = '1',
+	type = 'hello'
+}))
+
 net.send(goldNet.createPacket({
 	to = '240:255:224:255',
 	from = '::',
-	data = table.concat({...}, ' '),
+	-- data = table.concat({...}, ' '),
+	data = 'multicast',
 	type = 'hello'
 }))
