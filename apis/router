@@ -1,9 +1,11 @@
+os.loadAPI('apis/mat')
+
 function create()
 	local router = {}
 	local routes = {}
 
 	function router.add(ma, route)
-		routes[#routes + 1] = { ma, route }
+		routes[#routes + 1] = { mat.wrap(ma), route }
 	end
 
 	function router.each(fn)
