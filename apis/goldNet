@@ -16,6 +16,7 @@ function create(opts)
 	local daemons = {}
 	local runningDaemons = {}
 	local interfaces = {}
+	local addresses = {}
 
 	local function networkDaemons(inter)
 		while true do
@@ -69,6 +70,8 @@ function create(opts)
 	function net.pullEvent(filter)
 		while true do
 			local ev = {net.osPullEvent()}
+
+			-- print("got ev: ", ev[1])
 			
 			if not net.handleEvent(ev) then return unpack(ev) end
 		end
@@ -170,6 +173,12 @@ function create(opts)
 			-- 	print('    false')
 			end
 		end)
+
+		if mat.match(to, mat.undefined) then
+			-- TODO: Stop this from double sending
+			for _, inter in pairs(interfaces) do
+				inter.send(packet, { inter = inter })
+			end
 		end
 	end
 
@@ -184,6 +193,10 @@ function create(opts)
 		frame.data = packet
 
 		return frame
+	end
+
+	function net.listen(address)
+		address = mat.wrap(address)
 	end
 
 	return net
