@@ -1,31 +1,13 @@
 print('Router')
-os.loadAPI('goldNet')
-os.loadAPI('dhcp')
-os.loadAPI('dns')
-os.loadAPI('arp')
--- os.loadAPI('nat')
+os.loadAPI('apis/goldNet')
+os.loadAPI('apis/dhcp')
+os.loadAPI('apis/dns')
+os.loadAPI('apis/ndp')
+os.loadAPI('apis/matable')
 
-local arpCache = {}
-
--- Create Local Network
-local lan = goldNet.create(peripheral.wrap('right'), 0)
-local dhcpd = dhcp.createServer(lan)
--- local dnsd = dns.createServer(lan)
-
-lan.run()
-dhcpd.run()
--- dnsd.run()
-
-local done = false
-repeat
-	local ev = { os.pullEvent() }
-
-	if ev[1] == 'char' and ev[2] == 'q' then
-		print('Stopping Router')
-		done = lan.stop()
-	elseif ev[1] == 'modem_message' then
-		if lan.checkEvent(ev) then
-			lan.handle(ev)
-		end
-	end
-until done
+local matables = matable.create()
+local routes = {}
+local net = goldNet.create({
+	matables = matables,
+	routes = routes
+})
