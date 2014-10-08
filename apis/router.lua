@@ -1,4 +1,4 @@
-os.loadAPI('apis/mat')
+local mat = require('apis/mat')
 
 function create()
 	local router = {}

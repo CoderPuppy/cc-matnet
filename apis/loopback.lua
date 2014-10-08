@@ -1,5 +1,8 @@
-os.loadAPI('apis/mat')
-id = 0
+local logging = require('apis/logging')
+local utils   = require('apis/utils')
+local mat     = require('apis/mat')
+
+local id = 0
 
 function createInterface(opts)
 	if type(opts) ~= 'table' then error('You must specify a routes table') end

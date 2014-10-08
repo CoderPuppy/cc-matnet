@@ -1,22 +1,23 @@
-os.loadAPI('apis/stoneNet')
-os.loadAPI('apis/utils')
-os.loadAPI('apis/logging')
-os.loadAPI('apis/mat')
+local stoneNet = require('apis/stoneNet')
+local logging  = require('apis/logging')
+local threads  = require('../peak/threads')
+local utils    = require('apis/utils')
+local mat      = require('apis/mat')
 
 function create(opts)
 	if type(opts) ~= 'table' then error('You must specify matables and routes') end
 
-	if type(opts.matables) ~= 'table' then error('You must pass a valid matable instance, got: ' .. type(opts.mataables)) end
+	if type(opts.matables) ~= 'table' then error('You must pass a valid matable instance, got: ' .. type(opts.matables)) end
 	if type(opts.routes) ~= 'table' then error('You must pass a valid routes table, got: ' .. type(opts.routes)) end
 
-	local mataables = opts.mataables
+	local mataables = opts.matables
 	local routes = opts.routes
 
 	local net = { osPullEvent = os.pullEvent }
 	local daemons = {}
 	local runningDaemons = {}
 	local interfaces = {}
-	local allowedAddresses = { { mat.createMatcher(mat.wrap('::')), true }}
+	local allowedAddresses = { { mat.createMatcher(mat.wrap('::')), true } }
 
 	local function networkDaemons(inter)
 		while true do
@@ -48,12 +49,12 @@ function create(opts)
 		end
 	end
 
-	function net.addDaemon(name, fn)
-		if type(fn) ~= 'function' then
-			error('Must supply a function when registering a daemon')
+	function net.addDaemon(name, thread)
+		if not threads.isThread(thread) then
+			error('Must supply a thread when registering a daemon', 2)
 		end
 
-		daemons[name] = fn
+		daemons[name] = thread
 
 		return true
 	end
@@ -113,41 +114,19 @@ function create(opts)
 		return true
 	end
 
-	function net.startDaemon(name)
-		local fn = daemons[name]
-
-		-- Not really necesary
-		-- if type(fn) ~= 'function' then return false end
-
-		logging.debug('Starting Daemon: ' .. name)
-
-		local daemon = coroutine.create(fn)
-		runningDaemons[name] = daemon
-		utils.erroredResume(daemon, net)
-
-
-		return true
-	end
-
-	function net.stopDaemon(name)
+	function net.removeDaemon(name)
 		local daemon = runningDaemons[name]
 
 		-- Handle daemons that aren't started
 		if type(daemon) ~= 'thread' then return true end
 
-		logging.debug('Stopping Daemon: ' .. name)
+		logging.debug('Removing Daemon: ' .. name)
 
-		utils.erroredResume(daemon, 'lcp', {
-			command = 'daemon:stop'
+		daemon.queue('lcp', {
+			command = 'daemon:remove'
 		})
 
-		if coroutine.status(daemon) == 'dead' then
-			runningDaemons[name] = nil
-		else
-			logging.warn(name .. ' didn\'t stop when told to')
-
-			return false
-		end
+		runningDaemons[name] = nil
 
 		return true
 	end

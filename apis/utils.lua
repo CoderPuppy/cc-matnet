@@ -1,8 +1,8 @@
-function logn(n, x)
+function exports.logn(n, x)
 	return math.log(x) / math.log(n)
 end
 
-function reverse(t)
+function exports.reverse(t)
 	local nt = {} -- new table
 	local size = #t + 1
 	for k,v in ipairs(t) do
@@ -11,7 +11,7 @@ function reverse(t)
 	return nt
 end
 
-function tobits(num)
+function exports.tobits(num)
 	local t={}
 	while num>0 do
 		rest=num%2
@@ -21,7 +21,7 @@ function tobits(num)
 	return reverse(t)
 end
 
-function table_slice(values,i1,i2)
+function exports.table_slice(values,i1,i2)
 	local res = {}
 	local n = #values
 	-- default values for range
@@ -43,7 +43,7 @@ function table_slice(values,i1,i2)
 	return res
 end
 
-function split(str, sSeparator, nMax, bRegexp)
+function exports.split(str, sSeparator, nMax, bRegexp)
 	assert(sSeparator ~= '')
 	assert(nMax == nil or nMax >= 1)
 
@@ -53,11 +53,20 @@ function split(str, sSeparator, nMax, bRegexp)
 		local bPlain = not bRegexp
 		nMax = nMax or -1
 
-		local nField=1 nStart=1
+		local nField, nStart = 1, 1
 		local nFirst,nLast = str:find(sSeparator, nStart, bPlain)
 		while nFirst and nMax ~= 0 do
-			aRecord[nField] = str:sub(nStart, nFirst-1)
-			nField = nField+1
+			-- if nStart == nil then
+				-- print('aRecord: ' .. textutils.serialize(aRecord))
+				-- print('nMax: ' .. nMax)
+				-- print('nFirst: ' .. nFirst)
+				-- -- nStart = nFirst
+				-- print('nStart: ' .. nStart)
+			-- end
+			if nFirst - nStart >= 1 or (nStart > 1 and nFirst < #str) then
+				aRecord[nField] = str:sub(nStart, nFirst-1)
+				nField = nField+1
+			end
 			nStart = nLast+1
 			nFirst,nLast = str:find(sSeparator, nStart, bPlain)
 			nMax = nMax-1
@@ -68,15 +77,15 @@ function split(str, sSeparator, nMax, bRegexp)
 	return aRecord
 end
 
-function pcallResume(...)
+function exports.pcallResume(...)
 	return coroutine.resume(...)
 end
 
-function erroredResume(...)
-	local rtn = {pcallResume(...)}
+function exports.erroredResume(...)
+	local rtn = {exports.pcallResume(...)}
 
 	if rtn[1] then
-		return unpack(table_slice(rtn, 2))
+		return unpack(exports.table_slice(rtn, 2))
 	else
 		error(rtn[2])
 	end

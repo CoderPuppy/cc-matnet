@@ -1,9 +1,10 @@
-os.loadAPI('apis/logging')
+local logging = require('apis/logging')
+local utils   = require('apis/utils')
 
 local matParts = 4
 local matSize = 32
 
-function validateMAT(mat, silent)
+function exports.validateMAT(mat, silent)
 	local warn
 
 	if silent then
@@ -35,7 +36,7 @@ function validateMAT(mat, silent)
 	if type(mat.netBits) == 'number' and mat.netBits < 0 then warn('Netmasks cannot be negative, got: ' .. tostring(mat.netBits)) end
 end
 
-function parse(mat)
+function exports.parse(mat)
 	local m, subnetStart
 
 	local mata = {
@@ -56,59 +57,31 @@ function parse(mat)
 	local expander
 	local remove = 0
 
-	-- print(textutils.serialize(matArr))
-
-	-- Find extra blank values (Can't remove them here because of a bug with LuaJ)
-	for i, v in ipairs(matArr) do
-		if v == '' then
-			if not expanderFound then
-				expanderFound = true
-				expander = i
-			elseif outofRow then
-				error('More than one expander in MAT address')
-			else
-				remove = remove + 1
-			end
-		else
-			if expanderFound and not outofRow then
-				outofRow = true
-			end
-		end
-	end
-
-	-- Remove them
-	if expanderFound then
-		for _=1,remove do
-			table.remove(matArr, expander)
-		end
-	end
-
 	-- Expand the expander
 	local newMatArr = {}
 
-	-- if expanderFound and #matArr < matParts then
-		for i, v in pairs(matArr) do
-			if v == '' then
-				for _ = 1,(matParts - (#matArr - 1)) do
-					table.insert(newMatArr, 0)
-				end
-			else
-				table.insert(newMatArr, tonumber(v))
+	for i, v in pairs(matArr) do
+		if v == '' then
+			for _ = 1, (matParts - #matArr + 1) do
+				table.insert(newMatArr, 0)
 			end
+		else
+			table.insert(newMatArr, tonumber(v))
 		end
-		-- if expanderFound then
-			-- utils.table_slice(newMatArr, 1, expander - 1)
-		-- end
-	-- end
+	end
 
 	mata.parts = newMatArr
 
-	validateMAT(mata)
+	local ok, err = pcall(exports.validateMAT, mata)
+
+	if not ok then
+		error('Error parsing mat address: ' .. mat .. ': ' .. err, 2)
+	end
 
 	return mata
 end
 
-function toString(mata)
+function exports.toString(mata)
 	local expander = false
 	local expanderLoc
 	local expanderNum
@@ -169,48 +142,48 @@ end
 -- 240:255::/8 dev subnet ->
 --   240:255:224:0/24 multicast dev subnet
 
-function createAddrMask(bits)
+function exports.createAddrMask(bits)
 	if bits > matSize then error('Netmasks cannot be larger than ' .. tostring(matSize) .. ' got: ' .. tostring(bits)) end
 
 	return bit.blshift(2^bits - 1, matSize - bits)
 end
 
-function createMatcher(mat)
-	validateMAT(mat)
+function exports.createMatcher(mat)
+	exports.validateMAT(mat)
 
 	if type(mat.matchBits) ~= 'number' then error('Match bits are required for creating a matcher, got: ' .. type(mat.matchBits)) end
 
-	local addr = { mask = createAddrMask(mat.matchBits), parts = mat.parts, matchBits = mat.matchBits }
+	local addr = { mask = exports.createAddrMask(mat.matchBits), parts = mat.parts, matchBits = mat.matchBits }
 
-	addr.matchNum = bit.band(addr.mask, toNum(mat))
+	addr.matchNum = bit.band(addr.mask, exports.toNum(mat))
 
 	return addr
 end
 
-function match(input, matcher)
-	validateMAT(input)
-	validateMAT(matcher)
+function exports.match(input, matcher)
+	exports.validateMAT(input)
+	exports.validateMAT(matcher)
 	
 	if (type(matcher.matchNum) ~= 'number' or type(matcher.mask ~= 'number')) and type(matcher.matchBits) == 'number' then
-		matcher = createMatcher(matcher)
+		matcher = exports.createMatcher(matcher)
 	end
 	if type(matcher.matchBits) == 'number' then
-		return bit.band(toNum(input), matcher.mask) == matcher.matchNum
+		return bit.band(exports.toNum(input), matcher.mask) == matcher.matchNum
 	end
 
 	return toNum(input) == toNum(matcher)
 end
 
-function toNum(mat)
-	validateMAT(mat)
+function exports.toNum(mat)
+	exports.validateMAT(mat)
 	return bit.blshift(mat.parts[1], 24) + bit.blshift(mat.parts[2], 16) + bit.blshift(mat.parts[3], 8) + mat.parts[4]
 end
 
-undefined = createMatcher(parse('::'))
+undefined = exports.createMatcher(exports.parse('::'))
 
-function wrap(mat)
+function exports.wrap(mat)
 	if type(mat) == 'string' then
-		return parse(mat)
+		return exports.parse(mat)
 	elseif type(mat) == 'table' and type(mat.parts) == 'table' and #mat.parts == matParts then
 		return mat
 	end

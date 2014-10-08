@@ -1,4 +1,4 @@
-os.loadAPI('apis/mat')
+local mat = require('apis/mat')
 
 function initInter(net, routes, inters, addr)
 	if addr == nil then addr = '224::/8' end

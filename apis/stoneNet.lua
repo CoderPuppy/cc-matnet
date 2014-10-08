@@ -1,33 +1,25 @@
 id = os.getComputerID()
 
-os.loadAPI('apis/logging')
-os.loadAPI('apis/utils')
+local logging = require('apis/logging')
+local devices = require('../peak/devices')
+local utils   = require('apis/utils')
 
 local interID = 0
 
-function createInterface(opts)
-	if type(opts) ~= 'table' then error('You must specify side, channel and matables') end
+function exports.createInterface(opts)
+	if type(opts) ~= 'table' then error('You must specify device, channel and matables') end
 
-	if type(opts.side) ~= 'string' then error('You must pass a valid side, got: ' .. type(opts.side)) end
+	if not devices.isDevice(opts.device) then error('You must pass a valid device, got: ' .. type(opts.device), 2) end
+	if opts.device.type ~= 'modem'       then error('Device must be a modem, got: ' .. opts.device.type, 2) end
 
-	do
-		local ok, res = pcall(peripheral.getType, opts.side)
+	if type(opts.channel) ~= 'number' then error('Channel must be a number, got: ' .. type(opts.channel), 2) end
+	if opts.channel <= 0              then error('Channel must be greater than 0, got: ' .. tostring(opts.channel), 2) end
+	if opts.channel >= 65535          then error('Channel must be less than 65535, got: ' .. tostring(opts.channel), 2) end
+	if type(opts.matables) ~= 'table' then error('You must pass a valid matable instance, got: ' .. type(opts.matables), 2) end
 
-		if (not ok and res:sub(#res - 12) == 'Invalid side.') or res == nil then
-			error('You must pass a valid side (left, right, top, bottom, front, back), got: ' .. opts.side)
-		elseif ok and res ~= 'modem' then
-			error('There must be a modem on the "' .. opts.side .. '", got: ' .. res)
-		end
-	end
-
-	if type(opts.channel) ~= 'number' then error('Channel must be a number, got: ' .. type(opts.channel)) end
-	if opts.channel <= 0 then error('Channel must be greater than 0, got: ' .. tostring(opts.channel)) end
-	if opts.channel >= 65535 then error('Channel must be less than 65535, got: ' .. tostring(opts.channel)) end
-	if type(opts.matables) ~= 'table' then error('You must pass a valid matable instance, got: ' .. type(opts.matables)) end
-
-	local modem = peripheral.wrap(opts.side)
+	local device = opts.device
+	local modem = device.api
 	local channel = opts.channel
-	local side = opts.side
 
 	local inter = { id = id, type = 'eth' }
 	local daemons = {}
@@ -109,11 +101,11 @@ function createInterface(opts)
 	end
 
 	function inter.handleEvent(ev)
-		if ev[1] ~= 'modem_message' or ev[2] ~= side or ev[3] ~= channel then
+		if ev[1] ~= 'modem_message' or ev[2] ~= device.id or ev[3] ~= channel then
 			return false
 		end
 
-		local frame = parseEvent(ev)
+		local frame = exports.parseEvent(ev)
 
 		if frame.to ~= id and frame.to ~= -1 and not inter.promisc then
 			return false
@@ -127,17 +119,17 @@ function createInterface(opts)
 	end
 
 	function inter.send(frame)
-		modem.transmit(channel, channel, genMsg(frame))
+		modem.transmit(channel, channel, exports.genMsg(frame))
 	end
 
 	return inter
 end
 
-function genMsg(frame)
+function exports.genMsg(frame)
 	return textutils.serialize(frame)
 end
 
-function parseEvent(ev)
+function exports.parseEvent(ev)
 	local frame = {}
 	local data = textutils.unserialize(ev[5]) -- This should change
 

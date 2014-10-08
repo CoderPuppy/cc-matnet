@@ -7,7 +7,7 @@ local lcolors = {
 	{ colors.black, colors.white }
 }
 
-logLevel = 5
+local logLevel = 5
 
 if term.isColor() then
 	-- Fatal
@@ -18,7 +18,7 @@ if term.isColor() then
 	lcolors[3] = { colors.yellow, colors.black }
 end
 
-function output(level, ...)
+function exports.output(level, ...)
 	if logLevel > level then return end
 
 	term.setBackgroundColor(lcolors[level][1])
@@ -34,27 +34,27 @@ function output(level, ...)
 	write('\n')
 end
 
-function fatal(...)
-	output(1, ...)
+function exports.fatal(...)
+	exports.output(1, ...)
 end
 
-function error(...)
-	output(2, ...)
+function exports.error(...)
+	exports.output(2, ...)
 end
 
-function warn(...)
-	output(3, ...)
+function exports.warn(...)
+	exports.output(3, ...)
 end
 
-function log(...)
-	output(4, ...)
+function exports.log(...)
+	exports.output(4, ...)
 end
 
-function debug(...)
-	output(5, ...)
+function exports.debug(...)
+	exports.output(5, ...)
 end
 
-function level(v)
+function exports.level(v)
 	if type(v) ~= 'number' then
 		return logLevel;
 	elseif v < 0 then
